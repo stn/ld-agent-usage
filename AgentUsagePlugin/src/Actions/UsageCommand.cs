@@ -14,6 +14,9 @@ namespace Loupedeck.AgentUsagePlugin
 
         private const Double WarningThreshold = 20;
 
+        // 4 ボタンの下段を揃えて切り替えるため、ボタンごとではなく共有で持つ
+        private static Boolean s_showCountdown;
+
         private readonly String _title;
         private readonly String _resetFormat;
         private readonly BitmapColor _accent;
@@ -51,7 +54,11 @@ namespace Loupedeck.AgentUsagePlugin
             return true;
         }
 
-        protected override void RunCommand(String actionParameter) => this.Usage.Refresh();
+        protected override void RunCommand(String actionParameter)
+        {
+            s_showCountdown = !s_showCountdown;
+            this.Usage.Refresh();
+        }
 
         protected override BitmapImage GetCommandImage(String actionParameter, PluginImageSize imageSize)
         {
@@ -79,11 +86,20 @@ namespace Loupedeck.AgentUsagePlugin
                 b.FillRectangle(barX, barY, (Int32)(barW * r / 100), barH, color);
             }
 
-            var resetText = window?.ResetsAt is { } at && at > now ? at.ToLocalTime().ToString(this._resetFormat, CultureInfo.InvariantCulture) : "";
+            var resetText = window?.ResetsAt is { } at && at > now
+                ? s_showCountdown ? FormatCountdown(at - now) : at.ToLocalTime().ToString(this._resetFormat, CultureInfo.InvariantCulture)
+                : "";
             b.DrawText(resetText, 0, Y(0.70), w, Y(0.24), Muted, Y(0.16));
 
             return b.ToImage();
         }
+
+        private static String FormatCountdown(TimeSpan left) => left switch
+        {
+            { TotalDays: >= 1 } => $"{(Int32)left.TotalDays}d{left.Hours}h",
+            { TotalHours: >= 1 } => $"{(Int32)left.TotalHours}h{left.Minutes:00}m",
+            _ => $"{left.Minutes}m",
+        };
     }
 
     public sealed class ClaudeWeeklyCommand : UsageCommand
