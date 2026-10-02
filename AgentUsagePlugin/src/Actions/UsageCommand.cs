@@ -1,6 +1,7 @@
 namespace Loupedeck.AgentUsagePlugin
 {
     using System;
+    using System.Globalization;
 
     public abstract class UsageCommand : PluginDynamicCommand
     {
@@ -14,18 +15,18 @@ namespace Loupedeck.AgentUsagePlugin
         private const Double WarningThreshold = 20;
 
         private readonly String _title;
-        private readonly String _windowLabel;
+        private readonly String _resetFormat;
         private readonly BitmapColor _accent;
         private readonly Func<UsageSnapshot, UsageWindow> _selectWindow;
 
         protected UsageCommand(Boolean isClaude, Boolean isWeekly)
             : base(
-                displayName: $"{(isClaude ? "Claude" : "Codex")} {(isWeekly ? "週間" : "5時間")}",
+                displayName: $"{(isClaude ? "Claude" : "Codex")} {(isWeekly ? "W" : "5h")}",
                 description: "Codex / Claude の残量",
                 groupName: "Agent Usage")
         {
             this._title = isClaude ? "CLAUDE" : "CODEX";
-            this._windowLabel = isWeekly ? "週間" : "5時間";
+            this._resetFormat = isWeekly ? "HH:mm (ddd)" : "HH:mm";
             this._accent = isClaude ? ClaudeAccent : CodexAccent;
             this._selectWindow = (isClaude, isWeekly) switch
             {
@@ -65,13 +66,12 @@ namespace Loupedeck.AgentUsagePlugin
             Int32 Y(Double ratio) => (Int32)(h * ratio);
 
             b.Clear(Background);
-            b.DrawText(this._title, 0, Y(0.02), w, Y(0.18), this._accent, Y(0.15));
-            b.DrawText($"{this._windowLabel}・残り", 0, Y(0.19), w, Y(0.14), Muted, Y(0.11));
-            b.DrawText(remaining is { } p ? $"{p:0}%" : "--", 0, Y(0.33), w, Y(0.30), color, Y(0.27));
+            b.DrawText(this._title, 0, Y(0.02), w, Y(0.12), this._accent, Y(0.11));
+            b.DrawText(remaining is { } p ? $"{p:0}%" : "--", 0, Y(0.26), w, Y(0.34), color, Y(0.30));
 
             var barX = w / 8;
             var barW = w - (barX * 2);
-            var barY = Y(0.66);
+            var barY = Y(0.63);
             var barH = Math.Max(2, Y(0.05));
             b.FillRectangle(barX, barY, barW, barH, Track);
             if (remaining is { } r)
@@ -79,8 +79,8 @@ namespace Loupedeck.AgentUsagePlugin
                 b.FillRectangle(barX, barY, (Int32)(barW * r / 100), barH, color);
             }
 
-            var resetText = window?.ResetsAt is { } at && at > now ? at.ToLocalTime().ToString("MM/dd HH:mm") : "";
-            b.DrawText(resetText, 0, Y(0.76), w, Y(0.20), Muted, Y(0.15));
+            var resetText = window?.ResetsAt is { } at && at > now ? at.ToLocalTime().ToString(this._resetFormat, CultureInfo.InvariantCulture) : "";
+            b.DrawText(resetText, 0, Y(0.70), w, Y(0.24), Muted, Y(0.16));
 
             return b.ToImage();
         }
