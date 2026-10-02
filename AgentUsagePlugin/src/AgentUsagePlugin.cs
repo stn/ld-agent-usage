@@ -10,14 +10,24 @@ namespace Loupedeck.AgentUsagePlugin
 
         internal UsageStore Usage { get; } = new();
 
+        internal SessionStore Sessions { get; } = new();
+
         public AgentUsagePlugin()
         {
             PluginLog.Init(this.Log);
             PluginResources.Init(this.Assembly);
         }
 
-        public override void Load() => this.Usage.Start();
+        public override void Load()
+        {
+            this.Usage.Start();
+            this.Sessions.Start();
+        }
 
-        public override void Unload() => this.Usage.Dispose();
+        public override void Unload()
+        {
+            this.Usage.Dispose();
+            this.Sessions.Dispose();
+        }
     }
 }
